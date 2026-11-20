@@ -1,0 +1,87 @@
+<resources>
+    <string name="app_name">Takt</string>
+
+    <!-- Home Screen -->
+    <string name="home_no_active_alarms">No active alarms</string>
+    <string name="home_empty_title">Silence, until you decide</string>
+    <string name="home_empty_subtitle">Create a precision alarm with a wake-up mission, or run an instant demo to feel how Takt works.</string>
+    <string name="home_demo_alarm_button">Run Demo Alarm</string>
+    <string name="home_add_alarm_cd">Add new alarm</string>
+    <string name="home_toggle_theme_cd">Switch light or dark theme</string>
+    <string name="home_alarm_deleted">Alarm deleted</string>
+    <string name="home_undo">Undo</string>
+    <string name="home_delete_cd">Delete alarm</string>
+    <string name="home_everyday">Every day</string>
+    <string name="home_weekdays">Weekdays</string>
+    <string name="home_weekends">Weekends</string>
+    <string name="home_once">Once</string>
+
+    <!-- Permission Banner -->
+    <string name="perm_banner_title">Action required for reliable alarms</string>
+    <string name="perm_exact_alarm_desc">Allow exact alarms so Takt rings on the exact second.</string>
+    <string name="perm_notifications_desc">Allow notifications to display active alarms and controls.</string>
+    <string name="perm_full_screen_desc">Allow full-screen alerts so missions appear over your lock screen.</string>
+    <string name="perm_action_enable">Enable</string>
+
+    <!-- Editor Screen -->
+    <string name="editor_new_alarm">New Alarm</string>
+    <string name="editor_edit_alarm">Edit Alarm</string>
+    <string name="editor_save">Save</string>
+    <string name="editor_cancel_cd">Close editor</string>
+    <string name="editor_repeat_label">REPEAT</string>
+    <string name="editor_label_section">LABEL</string>
+    <string name="editor_label_placeholder">Morning focus</string>
+    <string name="editor_mission_section">WAKE MISSION</string>
+    <string name="editor_audio_section">AUDIO &amp; WAKE</string>
+    <string name="editor_ringtone">Ringtone</string>
+    <string name="editor_ringtone_default">Takt Built-in Pulse</string>
+    <string name="editor_gradual_volume">Gradual volume fade-in</string>
+    <string name="editor_gradual_volume_sub">Ramps 10% to 100% over 30s</string>
+    <string name="editor_vibration">Haptic vibration</string>
+    <string name="editor_vibration_sub">Tactile rhythmic pulse</string>
+    <string name="editor_snooze">Strict snooze limit</string>
+    <string name="editor_snooze_off">Disabled</string>
+    <string name="editor_snooze_one">1 × 5 min</string>
+    <string name="editor_snooze_two">2 × 5 min</string>
+    <string name="editor_delete_alarm">Delete Alarm</string>
+
+    <!-- Mission Sheet -->
+    <string name="mission_sheet_title">Select Mission</string>
+    <string name="mission_test_button">Test Mission</string>
+    <string name="mission_done">Apply</string>
+    <string name="mission_none_title">None</string>
+    <string name="mission_none_sub">Standard single-tap dismissal</string>
+    <string name="mission_math_title">Math</string>
+    <string name="mission_math_sub">Solve arithmetic before silence</string>
+    <string name="mission_memory_title">Memory Grid</string>
+    <string name="mission_memory_sub">Recall illuminated matrix tiles</string>
+    <string name="mission_typing_title">Typing</string>
+    <string name="mission_typing_sub">Transcribe code without autocorrect</string>
+    <string name="mission_difficulty">Difficulty</string>
+    <string name="mission_problems">Problems</string>
+    <string name="mission_rounds">Rounds</string>
+    <string name="mission_grid_size">Grid Size</string>
+
+    <!-- Active Alarm & Mission -->
+    <string name="active_start_mission">Start Mission</string>
+    <string name="active_dismiss_alarm">Dismiss Alarm</string>
+    <string name="active_snooze">Snooze 5 min</string>
+    <string name="active_demo_badge">DEMO ALARM</string>
+    <string name="active_sound_paused_label">Audio paused while solving</string>
+    <string name="active_sound_resumed_label">Audio active — keep solving</string>
+    <string name="active_memory_watch">Memorize the pattern</string>
+    <string name="active_memory_recall">Tap the matching tiles</string>
+    <string name="active_typing_hint">Type exact sequence</string>
+    <string name="active_typing_paste_blocked">Paste is disabled during missions</string>
+    <string name="active_submit">Verify</string>
+    <string name="active_good_morning">Good morning</string>
+    <string name="active_good_morning_sub">Mission complete. Alarm dismissed.</string>
+    <string name="active_preview_complete">Mission test passed</string>
+    <string name="active_preview_close">Close preview</string>
+
+    <!-- Notification -->
+    <string name="notif_channel_name">Takt Active Alarms</string>
+    <string name="notif_channel_desc">High-priority full-screen alarm notifications</string>
+    <string name="notif_alarm_ringing">Alarm ringing</string>
+    <string name="notif_tap_to_solve">Open to complete wake mission</string>
+</resources>

@@ -1,0 +1,6 @@
+{
+  "name": "Takt",
+  "description": "Minimalist Swiss-inspired Android alarm clock with cognitive wake-up missions (Math, Memory Grid, and Typing), lock-screen takeover, and exact alarm scheduling.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
