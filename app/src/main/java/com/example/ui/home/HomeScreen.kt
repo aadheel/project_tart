@@ -1,6 +1,7 @@
 package com.example.ui.home
 
 import android.Manifest
+import android.content.Intent
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -85,10 +86,14 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.LaunchedEffect
 import com.example.R
+import com.example.alarm.AlarmContract
+import com.example.alarm.AlarmForegroundService
 import com.example.alarm.AlarmPermissionHelper
 import com.example.alarm.AlarmPermissionStatus
 import com.example.domain.model.Alarm
+import com.example.ui.active.AlarmActivity
 import com.example.ui.components.TaktSwitch
 import kotlinx.coroutines.launch
 import kotlin.math.PI
@@ -104,6 +109,7 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val ringingAlarm by AlarmForegroundService.activeRuntime.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -116,6 +122,16 @@ fun HomeScreen(
 
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.updatePermissions(AlarmPermissionHelper.checkStatus(context))
+    }
+
+    // Without notification permission the ringing alarm's full-screen screen can't appear,
+    // so ask once on launch instead of waiting for the user to find the banner.
+    LaunchedEffect(Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !AlarmPermissionHelper.checkStatus(context).hasNotificationPermission
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
 
     val deletedLabel = stringResource(R.string.home_alarm_deleted)
@@ -173,6 +189,34 @@ fun HomeScreen(
                     onTriggerDemo = viewModel::triggerDemoAlarm
                 )
 
+                // Fallback for when the alarm screen couldn't open on its own (e.g. notifications
+                // were denied): without this the ringing alarm has no way to be stopped.
+                AnimatedVisibility(
+                    visible = ringingAlarm != null,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    RingingAlarmBanner(
+                        onOpen = {
+                            val runtime = AlarmForegroundService.activeRuntime.value
+                            if (runtime != null) {
+                                context.startActivity(
+                                    Intent(context, AlarmActivity::class.java).apply {
+                                        flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                                            Intent.FLAG_ACTIVITY_SINGLE_TOP
+                                        AlarmContract.putAlarmExtras(
+                                            this,
+                                            runtime.alarm,
+                                            isDemo = runtime.isDemo
+                                        )
+                                    }
+                                )
+                            }
+                        },
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
+
                 AnimatedVisibility(
                     visible = state.permissions.hasMissingPermission,
                     enter = fadeIn(),
@@ -181,11 +225,11 @@ fun HomeScreen(
                     PermissionBanner(
                         status = state.permissions,
                         onRequestNotifications = {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                notificationPermissionLauncher.launch(
-                                    Manifest.permission.POST_NOTIFICATIONS
-                                )
-                            }
+                            // The launch-time prompt already asked; if the user said no, Android
+                            // won't show the dialog again, so go straight to the settings page.
+                            context.startActivity(
+                                AlarmPermissionHelper.notificationSettingsIntent(context)
+                            )
                         },
                         onOpenExactAlarmSettings = {
                             context.startActivity(AlarmPermissionHelper.exactAlarmSettingsIntent(context))
@@ -336,15 +380,17 @@ private fun PermissionBanner(
     onOpenFullScreenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val (descriptionRes, onAction) = when {
-        !status.hasNotificationPermission -> {
-            R.string.perm_notifications_desc to onRequestNotifications
+    // Show every missing permission at once, each with its own button, so a user who fixes
+    // one isn't left unaware that alarms still won't work because of another.
+    val missing = buildList {
+        if (!status.hasNotificationPermission) {
+            add(R.string.perm_notifications_desc to onRequestNotifications)
         }
-        !status.canScheduleExactAlarms -> {
-            R.string.perm_exact_alarm_desc to onOpenExactAlarmSettings
+        if (!status.canScheduleExactAlarms) {
+            add(R.string.perm_exact_alarm_desc to onOpenExactAlarmSettings)
         }
-        else -> {
-            R.string.perm_full_screen_desc to onOpenFullScreenSettings
+        if (!status.canUseFullScreenIntent) {
+            add(R.string.perm_full_screen_desc to onOpenFullScreenSettings)
         }
     }
 
@@ -360,13 +406,15 @@ private fun PermissionBanner(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 14.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.Top
         ) {
             Icon(
                 imageVector = Icons.Rounded.WarningAmber,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
+                modifier = Modifier
+                    .padding(top = 2.dp)
+                    .size(20.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
@@ -375,22 +423,78 @@ private fun PermissionBanner(
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onBackground
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                missing.forEach { (descriptionRes, onAction) ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(descriptionRes),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        TextButton(
+                            onClick = onAction,
+                            modifier = Modifier.testTag("permission_enable_button")
+                        ) {
+                            Text(
+                                text = stringResource(R.string.perm_action_enable),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RingingAlarmBanner(
+    onOpen: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .testTag("ringing_alarm_banner"),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.primary
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.NotificationsActive,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = stringResource(descriptionRes),
+                    text = stringResource(R.string.home_ringing_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                Text(
+                    text = stringResource(R.string.home_ringing_desc),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.85f)
                 )
             }
             Spacer(modifier = Modifier.width(8.dp))
             TextButton(
-                onClick = onAction,
-                modifier = Modifier.testTag("permission_enable_button")
+                onClick = onOpen,
+                modifier = Modifier.testTag("ringing_alarm_open_button")
             ) {
                 Text(
-                    text = stringResource(R.string.perm_action_enable),
+                    text = stringResource(R.string.home_ringing_action),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onPrimary
                 )
             }
         }

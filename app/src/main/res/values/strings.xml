@@ -22,6 +22,9 @@
     <string name="perm_notifications_desc">Allow notifications to display active alarms and controls.</string>
     <string name="perm_full_screen_desc">Allow full-screen alerts so missions appear over your lock screen.</string>
     <string name="perm_action_enable">Enable</string>
+    <string name="home_ringing_title">Alarm ringing</string>
+    <string name="home_ringing_desc">Solve the mission to turn it off.</string>
+    <string name="home_ringing_action">Open</string>
 
     <!-- Editor Screen -->
     <string name="editor_new_alarm">New Alarm</string>

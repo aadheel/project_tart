@@ -7,11 +7,13 @@ import com.example.domain.mission.TypingMissionEngine
 import com.example.domain.model.Alarm
 import com.example.domain.model.MathDifficulty
 import com.example.domain.time.NextTriggerCalculator
+import com.example.ui.editor.AlarmEditorViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.DayOfWeek
+import java.time.LocalTime
 import java.time.ZoneOffset
 import java.time.ZonedDateTime
 import kotlin.random.Random
@@ -113,6 +115,38 @@ class MissionAndSchedulerUnitTest {
             nowMillis = mondayMorning
         )
         assertEquals("Alarm in 6h 42m", countdown)
+    }
+
+    @Test
+    fun nextActiveTrigger_skipsOneTimeAlarmThatAlreadyFired() {
+        val zone = ZoneOffset.UTC
+        val now = ZonedDateTime.of(2026, 11, 23, 16, 33, 0, 0, zone).toInstant().toEpochMilli()
+        val firedAt = ZonedDateTime.of(2026, 11, 23, 16, 32, 0, 0, zone).toInstant().toEpochMilli()
+
+        // A ringing one-time alarm must not show "Alarm in 23h 59m"
+        val ringingOnce = Alarm(id = 1, hour = 16, minute = 32, nextTriggerMillis = firedAt)
+        assertEquals(
+            null,
+            NextTriggerCalculator.findNextActiveTriggerMillis(listOf(ringingOnce), now, zone)
+        )
+
+        // A repeating alarm that just fired still counts down to its next day
+        val ringingDaily = ringingOnce.copy(id = 2, repeatDays = DayOfWeek.entries.toSet())
+        val expectedTomorrow = ZonedDateTime.of(2026, 11, 24, 16, 32, 0, 0, zone)
+            .toInstant().toEpochMilli()
+        assertEquals(
+            expectedTomorrow,
+            NextTriggerCalculator.findNextActiveTriggerMillis(
+                listOf(ringingOnce, ringingDaily), now, zone
+            )
+        )
+    }
+
+    @Test
+    fun defaultNewAlarmTime_roundsUpToNextFiveMinutesAtLeastOneMinuteAhead() {
+        assertEquals(LocalTime.of(16, 35), AlarmEditorViewModel.defaultNewAlarmTime(LocalTime.of(16, 34, 10)))
+        assertEquals(LocalTime.of(16, 40), AlarmEditorViewModel.defaultNewAlarmTime(LocalTime.of(16, 35, 0)))
+        assertEquals(LocalTime.of(0, 0), AlarmEditorViewModel.defaultNewAlarmTime(LocalTime.of(23, 57)))
     }
 
     @Test

@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.DayOfWeek
+import java.time.LocalTime
 
 data class AlarmEditorUiState(
     val isEditing: Boolean = false,
@@ -64,7 +65,10 @@ class AlarmEditorViewModel(
                 }
             }
         } else {
-            _uiState.update { it.copy(isLoaded = true) }
+            val defaultTime = defaultNewAlarmTime(LocalTime.now())
+            _uiState.update {
+                it.copy(isLoaded = true, hour = defaultTime.hour, minute = defaultTime.minute)
+            }
         }
     }
 
@@ -146,6 +150,13 @@ class AlarmEditorViewModel(
     }
 
     companion object {
+        /** New alarms start at least a minute ahead, rounded up to the next 5 minutes. */
+        fun defaultNewAlarmTime(now: LocalTime): LocalTime {
+            val earliest = now.withSecond(0).withNano(0).plusMinutes(1)
+            val extra = (5 - earliest.minute % 5) % 5
+            return earliest.plusMinutes(extra.toLong())
+        }
+
         fun factory(
             alarmId: Long?,
             repository: AlarmRepository

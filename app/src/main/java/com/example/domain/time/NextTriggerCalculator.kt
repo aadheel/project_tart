@@ -58,9 +58,13 @@ object NextTriggerCalculator {
         return alarms
             .asSequence()
             .filter { it.isEnabled }
-            .map { alarm ->
+            .mapNotNull { alarm ->
                 if (alarm.nextTriggerMillis > nowMillis) {
                     alarm.nextTriggerMillis
+                } else if (!alarm.isRepeating && alarm.nextTriggerMillis > 0L) {
+                    // A one-time alarm that already fired (ringing or not yet dismissed) gets
+                    // disabled on dismissal, so it has no upcoming trigger to count down to.
+                    null
                 } else {
                     calculateNextTriggerMillis(
                         hour = alarm.hour,
